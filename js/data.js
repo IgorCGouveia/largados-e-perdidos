@@ -48,6 +48,11 @@
     ultimaVerificacao: null
   };
 
+  /* Contas da secretaria já cadastradas (perfil gestor, RF02). */
+  LP.CONTAS_GESTOR = [
+    { nome: 'Maria Souza', email: 'secretaria@academico.ufpb.br', matricula: 'SIAPE 1234567', setor: 'Secretaria do CI', senha: 'secretaria' }
+  ];
+
   LP.USUARIOS = {
     aluno: { nome: 'Gives Andrade', email: 'gives.andrade@academico.ufpb.br', matricula: '20240012345', perfil: 'usuario' },
     gestor: { nome: 'Maria Souza', email: 'maria.souza@academico.ufpb.br', matricula: 'SIAPE 1234567', perfil: 'gestor', setor: 'Secretaria do CI' }

@@ -1,6 +1,6 @@
-/* Estado do protótipo, persistido no localStorage. Simula o back-end. */
+/* Estado do app, persistido no localStorage. Simula o back-end. */
 (function (LP) {
-  const KEY = 'largados-perdidos:v1';
+  const KEY = 'largados-perdidos:v2';
   const STATUS = {
     disponivel: { nome: 'Disponível', cls: 'st-ok' },
     solicitado: { nome: 'Solicitado', cls: 'st-wait' },
@@ -18,11 +18,34 @@
 
   let state;
 
+  /* Hash simples (cyrb53) só para não guardar a senha em texto puro no navegador.
+     Num sistema com servidor, a senha seria verificada no back-end. */
+  function hash(str) {
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+  }
+
+  function contasIniciais() {
+    const c = {};
+    LP.CONTAS_GESTOR.forEach(function (g) {
+      c[g.email] = { nome: g.nome, email: g.email, matricula: g.matricula, setor: g.setor, perfil: 'gestor', hash: hash(g.email + ':' + g.senha) };
+    });
+    return c;
+  }
+
   function fresh() {
     return {
       itens: LP.seedItens(),
       config: JSON.parse(JSON.stringify(LP.CONFIG_PADRAO)),
       sessao: null,
+      contas: contasIniciais(),
       seq: 43,
       interesses: {}
     };
@@ -84,7 +107,7 @@
   };
 
   /* RF17 + RNF06: rotina que marca itens vencidos como "Abandonado".
-     No sistema real roda sozinha uma vez por dia; aqui roda ao abrir o protótipo. */
+     No sistema real roda sozinha uma vez por dia; aqui roda ao abrir o app e de hora em hora. */
   function verificarPrazos() {
     let mudou = 0;
     state.itens.forEach(function (it) {
@@ -120,10 +143,23 @@
     verificarPrazos: verificarPrazos,
     item: find,
 
-    entrar: function (perfil) {
-      state.sessao = JSON.parse(JSON.stringify(LP.USUARIOS[perfil]));
+    conta: function (email) { return state.contas[email.toLowerCase()] || null; },
+
+    /* RF01: e-mail institucional + senha. Devolve a conta ou null. */
+    autenticar: function (email, senha) {
+      const c = state.contas[email.toLowerCase()];
+      if (!c || c.hash !== hash(c.email + ':' + senha)) return null;
+      state.sessao = { nome: c.nome, email: c.email, matricula: c.matricula, perfil: c.perfil, setor: c.setor };
       save();
+      return state.sessao;
     },
+
+    criarConta: function (dados) {
+      const email = dados.email.toLowerCase();
+      state.contas[email] = { nome: dados.nome, email: email, matricula: dados.matricula, perfil: 'usuario', hash: hash(email + ':' + dados.senha) };
+      return this.autenticar(email, dados.senha);
+    },
+
     sair: function () { state.sessao = null; save(); },
 
     /* RF03 + RF04 */

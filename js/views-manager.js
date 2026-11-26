@@ -19,9 +19,10 @@
       '<div class="g-brand"><img src="assets/mascote.webp" alt="" width="40" height="40"><div><strong>Largados</strong><span>&amp; Perdidos</span></div></div>' +
       '<nav aria-label="Menu do gestor">' + nav.map(function (n) {
         const on = n[0] === active;
-        return '<a href="#/g/' + n[0] + '" class="g-nav' + (on ? ' on' : '') + '"' + (on ? ' aria-current="page"' : '') + '>' + I(n[2], 20) + '<span>' + n[1] + '</span>' +
+        return '<a href="#/secretaria/' + n[0] + '" class="g-nav' + (on ? ' on' : '') + '"' + (on ? ' aria-current="page"' : '') + '>' + I(n[2], 20) + '<span>' + n[1] + '</span>' +
           (n[3] ? '<b class="badge">' + n[3] + '</b>' : '') + '</a>';
       }).join('') + '</nav>' +
+      '<a href="#/catalogo" class="g-nav g-nav-out">' + I('search', 20) + '<span>Catálogo público</span></a>' +
       '<div class="g-user"><div class="avatar">' + E(s.nome.split(' ').map(function (p) { return p[0]; }).slice(0, 2).join('')) + '</div>' +
       '<div><strong>' + E(s.nome) + '</strong><span>' + E(s.setor || 'Gestor') + '</span></div>' +
       '<button type="button" class="icon-btn" data-action="sair-gestor" aria-label="Sair">' + I('logout', 18) + '</button></div>' +
@@ -35,9 +36,10 @@
   function guard() {
     const s = LP.store.state.sessao;
     if (s && s.perfil === 'gestor') return null;
+    if (!s) { LP.afterLogin = location.hash; return '<div class="g-denied"><p>Redirecionando…</p></div>'; }
     return '<div class="g-denied"><img src="assets/mascote.webp" alt="" width="120" height="120">' +
-      '<h1>Área restrita à secretaria</h1><p>As funções de gestor ficam disponíveis só para o perfil gestor (RF02).</p>' +
-      '<button type="button" class="btn btn-primary" data-action="login-as" data-perfil="gestor">' + I('shield', 18) + 'Entrar como gestor (demonstração)</button></div>';
+      '<h1>Área restrita à secretaria</h1><p>Sua conta não tem acesso ao painel da secretaria. Ele é liberado só para o perfil gestor.</p>' +
+      '<a class="btn btn-primary" href="#/catalogo">Voltar ao catálogo</a></div>';
   }
 
   function itemCell(it) {
@@ -77,7 +79,7 @@
           (pendente
             ? '<button type="button" class="btn btn-ghost btn-sm" data-action="recusar" data-id="' + it.id + '">' + I('x', 16) + 'Recusar</button>' +
               '<button type="button" class="btn btn-primary btn-sm" data-action="aprovar" data-id="' + it.id + '">' + I('check', 16) + 'Aprovar</button>'
-            : '<a class="btn btn-primary btn-sm" href="#/g/devolucao/' + it.id + '">' + I('hand', 16) + 'Registrar devolução</a>') +
+            : '<a class="btn btn-primary btn-sm" href="#/secretaria/devolucao/' + it.id + '">' + I('hand', 16) + 'Registrar devolução</a>') +
           '</div></td></tr>';
       }).join('') + '</tbody></table></div>'
       : '<div class="card empty"><img src="assets/mascote.webp" alt="" width="96" height="96"><h3>Nenhuma solicitação</h3><p>Quando alguém pedir um item pelo app, o pedido aparece aqui.</p></div>';
@@ -85,7 +87,7 @@
     const tip = '<div class="tip">' + I('info', 18) + '<p>Aprovar só confirma que o item está guardado e pode ser buscado. A conferência do dono acontece na entrega, em <b>Registrar devolução</b>.</p></div>';
 
     return layout('solicitacoes', 'Solicitações de retirada', 'Pedidos feitos pela comunidade no catálogo de achados', kpis + tabela + tip,
-      '<a class="btn btn-ghost" href="#/g/itens">' + I('list', 18) + 'Ver todos os itens</a>');
+      '<a class="btn btn-ghost" href="#/secretaria/itens">' + I('list', 18) + 'Ver todos os itens</a>');
   };
 
   function kpi(icon, n, label, tone) {
@@ -115,7 +117,7 @@
       }
     });
   };
-  LP.actions['sair-gestor'] = function () { LP.store.sair(); LP.go('#/u/login'); };
+  LP.actions['sair-gestor'] = function () { LP.store.sair(); LP.toast('Você saiu.', 'info'); LP.go('#/login'); };
 
   /* ---------- 7 · Registrar devolução (RF14, RF15) ---------- */
   LP.views.g_devolucao = function (p) {
@@ -126,7 +128,7 @@
       const lista = st.itens.filter(function (i) { return i.status === 'solicitado' || i.status === 'disponivel'; });
       return layout('solicitacoes', 'Registrar devolução', 'Escolha o item que está sendo entregue',
         '<div class="card"><table class="table"><thead><tr><th>Item</th><th>Status</th><th></th></tr></thead><tbody>' +
-        lista.map(function (i) { return '<tr><td>' + itemCell(i) + '</td><td>' + LP.statusChip(i.status) + '</td><td class="ta-r"><a class="btn btn-ghost btn-sm" href="#/g/devolucao/' + i.id + '">Selecionar</a></td></tr>'; }).join('') +
+        lista.map(function (i) { return '<tr><td>' + itemCell(i) + '</td><td>' + LP.statusChip(i.status) + '</td><td class="ta-r"><a class="btn btn-ghost btn-sm" href="#/secretaria/devolucao/' + i.id + '">Selecionar</a></td></tr>'; }).join('') +
         '</tbody></table></div>');
     }
     if (it.status === 'devolvido') {
@@ -138,7 +140,7 @@
         '<div><dt>Conferência</dt><dd>' + E(d.criterio) + '</dd></div>' +
         '<div><dt>Data e hora</dt><dd>' + LP.fmt.dataHora(d.em) + '</dd></div>' +
         '<div><dt>Gestor responsável</dt><dd>' + E(d.gestor) + '</dd></div></dl>' +
-        '<a class="btn btn-primary" href="#/g/solicitacoes">Voltar às solicitações</a></div></div>');
+        '<a class="btn btn-primary" href="#/secretaria/solicitacoes">Voltar às solicitações</a></div></div>');
     }
     const sol = it.solicitacao;
     const form = '<form class="card card-pad form" data-form="devolucao" data-id="' + it.id + '" novalidate>' +
@@ -152,11 +154,11 @@
       '<div class="crit-list">' + st.config.criterios.map(function (c, idx) {
         return '<label class="crit"><input type="radio" name="criterio" value="' + E(c) + '"' + (idx === 0 ? ' checked' : '') + '><span>' + I('check', 16) + E(c) + '</span></label>';
       }).join('') + '</div>' +
-      '<a class="link-btn" href="#/g/config">' + I('gear', 14) + 'Editar lista de critérios</a></fieldset>' +
+      '<a class="link-btn" href="#/secretaria/config">' + I('gear', 14) + 'Editar lista de critérios</a></fieldset>' +
       '<label class="field"><span>Observação</span><textarea name="obs" rows="2" placeholder="Opcional. Ex.: descreveu o adesivo na tampa."></textarea></label>' +
       '<div class="audit">' + I('history', 18) + '<p>Será registrado com <b>data e hora atuais</b> e <b>' + E(st.sessao.nome) + '</b> como gestor responsável.</p></div>' +
       '<p class="form-error" data-error hidden></p>' +
-      '<div class="form-actions"><a class="btn btn-ghost" href="#/g/solicitacoes">Cancelar</a><button class="btn btn-primary" type="submit">' + I('check', 18) + 'Confirmar devolução</button></div>' +
+      '<div class="form-actions"><a class="btn btn-ghost" href="#/secretaria/solicitacoes">Cancelar</a><button class="btn btn-primary" type="submit">' + I('check', 18) + 'Confirmar devolução</button></div>' +
       '</form>';
     return layout('solicitacoes', 'Registrar devolução', 'Entrega do item ' + it.id + ' na secretaria',
       '<div class="g-two"><div>' + resumo(it) + '</div>' + form + '</div>');
@@ -206,7 +208,7 @@
     const lista = '<div class="card pick-list"><div class="card-head"><h2 class="card-title">Abandonados</h2><span class="chip st-old">' + aband.length + '</span></div>' +
       (aband.length ? aband.map(function (i) {
         const n = (st.interesses[i.id] || []).length;
-        return '<a class="pick' + (sel && sel.id === i.id ? ' on' : '') + '" href="#/g/destinacao/' + i.id + '">' + LP.thumb(i, 'sm') +
+        return '<a class="pick' + (sel && sel.id === i.id ? ' on' : '') + '" href="#/secretaria/destinacao/' + i.id + '">' + LP.thumb(i, 'sm') +
           '<div><strong>' + E(i.nome) + '</strong><span>' + i.id + ' · venceu ' + LP.fmt.data(LP.dataLimite(i)) + '</span>' +
           (n ? '<span class="pick-int">' + I('heart', 12) + n + (n === 1 ? ' interessado' : ' interessados') + '</span>' : '') + '</div></a>';
       }).join('') : '<p class="muted card-pad">Nenhum item aguardando destino.</p>') +
@@ -270,7 +272,7 @@
     LP.store.destinar(form.dataset.id, { tipo: tipo, destinatario: dest, justificativa: f.justificativa.value.trim(), data: new Date(f.data.value + 'T12:00:00').toISOString() });
     LP.gui.destTipo = null;
     LP.toast('Destinação registrada: ' + LP.DESTINOS[tipo].nome.toLowerCase() + '.');
-    LP.go('#/g/destinacao');
+    LP.go('#/secretaria/destinacao');
   };
 
   /* ---------- Itens (painel geral, RF05/RF21) ---------- */
@@ -294,18 +296,17 @@
           ? LP.fmt.data(LP.dataLimite(i)) + '<span class="sub' + (dias <= 7 ? ' warn-text' : '') + '">' + (dias < 0 ? 'vencido' : dias === 0 ? 'vence hoje' : 'faltam ' + dias + ' dias') + '</span>'
           : '<span class="muted">—</span>';
         let acao = '';
-        if (i.status === 'solicitado' || i.status === 'disponivel') acao = '<a class="btn btn-ghost btn-sm" href="#/g/devolucao/' + i.id + '">Devolver</a>';
-        if (i.status === 'abandonado') acao = '<a class="btn btn-ghost btn-sm" href="#/g/destinacao/' + i.id + '">Destinar</a>';
+        if (i.status === 'solicitado' || i.status === 'disponivel') acao = '<a class="btn btn-ghost btn-sm" href="#/secretaria/devolucao/' + i.id + '">Devolver</a>';
+        if (i.status === 'abandonado') acao = '<a class="btn btn-ghost btn-sm" href="#/secretaria/destinacao/' + i.id + '">Destinar</a>';
         return '<tr><td>' + itemCell(i) + '</td><td>' + E(i.local) + '</td><td>' + LP.fmt.data(i.entrada) + '</td><td>' + limite + '</td><td>' + LP.statusChip(i.status) + '</td><td class="ta-r">' + acao + '</td></tr>';
       }).join('') +
       (itens.length ? '' : '<tr><td colspan="6" class="muted ta-c">Nenhum item com esses filtros.</td></tr>') +
       '</tbody></table></div>';
     return layout('itens', 'Itens', 'Tudo que passou pela secretaria, do cadastro à saída', table,
-      '<a class="btn btn-primary" href="#/u/cadastrar" data-action="g-cadastrar">' + I('plus', 18) + 'Cadastrar item</a>');
+      '<a class="btn btn-primary" href="#/cadastrar">' + I('plus', 18) + 'Cadastrar item</a>');
   };
   LP.actions['g-filtro'] = function (el) { LP.gui.filtroStatus = el.dataset.status; LP.render(); };
   LP.inputs['g-busca'] = function (el) { LP.gui.busca = el.value; LP.render({ keepFocus: '[data-input="g-busca"]' }); };
-  LP.actions['g-cadastrar'] = function (el, ev) { ev.preventDefault(); LP.toast('Abrindo o cadastro na visão celular.', 'info'); LP.go('#/u/cadastrar'); };
 
   /* ---------- Configurações (RF16, RF06) ---------- */
   LP.views.g_config = function () {

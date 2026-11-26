@@ -27,9 +27,10 @@
   function header(title, opts) {
     opts = opts || {};
     return '<header class="m-header' + (opts.dark ? ' m-header-dark' : '') + '">' +
-      (opts.back ? '<a class="icon-btn" href="' + opts.back + '" aria-label="Voltar">' + I('back', 22) + '</a>' : '<img class="m-logo" src="assets/mascote.webp" alt="" width="34" height="34">') +
+      (opts.back ? '<a class="icon-btn" href="' + opts.back + '" aria-label="Voltar">' + I('back', 22) + '</a>' : '<a href="#/catalogo" class="m-logo-link" aria-label="Início"><img class="m-logo" src="assets/mascote.webp" alt="" width="34" height="34"></a>') +
       '<div class="m-title"><h1>' + title + '</h1>' + (opts.sub ? '<p>' + opts.sub + '</p>' : '') + '</div>' +
       (opts.right || '') +
+      (LP.store.state.sessao && LP.store.state.sessao.perfil === 'gestor' ? '<a class="btn btn-lime btn-sm" href="#/secretaria/solicitacoes">' + I('shield', 16) + 'Secretaria</a>' : '') +
       '</header>';
   }
 
@@ -42,7 +43,7 @@
     ];
     return '<nav class="tabbar" aria-label="Navegação principal">' + tabs.map(function (t) {
       const on = t[0] === active;
-      return '<a href="#/u/' + t[0] + '" class="tab' + (on ? ' on' : '') + (t[0] === 'cadastrar' ? ' tab-cta' : '') + '"' + (on ? ' aria-current="page"' : '') + '>' +
+      return '<a href="#/' + t[0] + '" class="tab' + (on ? ' on' : '') + (t[0] === 'cadastrar' ? ' tab-cta' : '') + '"' + (on ? ' aria-current="page"' : '') + '>' +
         '<span class="tab-ic">' + I(t[2], 22) + '</span><span>' + t[1] + '</span></a>';
     }).join('') + '</nav>';
   }
@@ -56,7 +57,7 @@
 
   function itemCard(it) {
     const c = LP.categoria(it.categoria);
-    return '<a class="item-card" href="#/u/item/' + it.id + '">' + LP.thumb(it, 'md') +
+    return '<a class="item-card" href="#/item/' + it.id + '">' + LP.thumb(it, 'md') +
       '<div class="item-card-body">' +
       '<div class="item-card-top"><span class="cat-label" style="--ink-tile:' + c.tinta + '">' + c.nome + '</span>' + LP.statusChip(it.status) + '</div>' +
       '<h3>' + E(it.nome) + '</h3>' +
@@ -66,55 +67,82 @@
   }
 
   /* ---------- 1 · Login (RF01, RF02) ---------- */
+  function nomeDoEmail(email) {
+    return email.split('@')[0].split(/[._-]+/).filter(Boolean)
+      .map(function (p) { return p.charAt(0).toUpperCase() + p.slice(1); }).join(' ');
+  }
+
   LP.views.login = function () {
+    const novo = LP.ui.novaConta;
+    const card = novo
+      ? '<form class="login-card" data-form="criar-conta" novalidate>' +
+        '<h2>Primeiro acesso</h2>' +
+        '<p class="hint">Não encontramos uma conta para <b>' + E(novo) + '</b>. Complete seus dados para criar.</p>' +
+        '<label class="field"><span>Nome completo</span><input name="nome" autocomplete="name" value="' + E(nomeDoEmail(novo)) + '" required></label>' +
+        '<label class="field"><span>Matrícula</span><input name="matricula" inputmode="numeric" autocomplete="off" placeholder="Ex.: 20240012345" required></label>' +
+        '<label class="field"><span>Crie uma senha</span><input type="password" name="senha" autocomplete="new-password" minlength="6" placeholder="Mínimo de 6 caracteres" required></label>' +
+        '<p class="hint">Usamos nome e matrícula só para registrar quem cadastrou, pediu ou retirou um item.</p>' +
+        '<p class="form-error" data-error hidden></p>' +
+        '<button class="btn btn-primary btn-block" type="submit">Criar conta e entrar</button>' +
+        '<button type="button" class="link-btn center" data-action="voltar-login">Usar outro e-mail</button>' +
+        '</form>'
+      : '<form class="login-card" data-form="login" novalidate>' +
+        '<h2>Entrar</h2>' +
+        '<p class="hint">Use seu e-mail institucional da UFPB.</p>' +
+        '<label class="field"><span>E-mail institucional</span>' +
+        '<input type="email" name="email" autocomplete="username" placeholder="nome@academico.ufpb.br" value="' + E(LP.ui.ultimoEmail || '') + '" required></label>' +
+        '<label class="field"><span>Senha</span>' +
+        '<input type="password" name="senha" autocomplete="current-password" required></label>' +
+        '<p class="form-error" data-error hidden></p>' +
+        '<button class="btn btn-primary btn-block" type="submit">Entrar</button>' +
+        '<p class="hint center-text">Primeiro acesso? Digite seu e-mail e uma senha nova para criar a conta.</p>' +
+        '</form>';
     return '<div class="m-screen login">' +
       '<div class="login-hero">' +
-      '<img src="assets/mascote.webp" alt="Mascote: crocodilo detetive com lupa" width="148" height="148">' +
+      '<img src="assets/mascote.webp" alt="Mascote: crocodilo detetive com lupa" width="140" height="140">' +
       '<h1>Largados<br><span>&amp; Perdidos</span></h1>' +
-      '<p class="tagline">Aqui não tem crocodilagem!</p>' +
-      '</div>' +
-      '<form class="login-card" data-form="login" novalidate>' +
-      '<h2>Entrar</h2>' +
-      '<p class="hint">Use seu e-mail institucional da UFPB.</p>' +
-      '<label class="field"><span>E-mail institucional</span>' +
-      '<input type="email" name="email" autocomplete="username" placeholder="nome@academico.ufpb.br" value="gives.andrade@academico.ufpb.br" required></label>' +
-      '<label class="field"><span>Senha</span>' +
-      '<input type="password" name="senha" autocomplete="current-password" value="••••••••" required></label>' +
-      '<p class="form-error" data-error hidden></p>' +
-      '<button class="btn btn-primary btn-block" type="submit">Entrar</button>' +
-      '<div class="demo-access"><span>Acesso de demonstração</span>' +
-      '<div class="demo-row"><button type="button" class="btn btn-ghost btn-sm" data-action="login-as" data-perfil="aluno">' + I('user', 16) + 'Usuário</button>' +
-      '<button type="button" class="btn btn-ghost btn-sm" data-action="login-as" data-perfil="gestor">' + I('shield', 16) + 'Gestor</button></div></div>' +
-      '</form>' +
-      '<a class="login-public" href="#/u/catalogo">Só quero ver o catálogo ' + I('chevron', 16) + '</a>' +
+      '<p class="tagline">Achados e perdidos do Centro de Informática</p>' +
+      '</div>' + card +
+      '<a class="login-public" href="#/catalogo">Ver o catálogo sem entrar ' + I('chevron', 16) + '</a>' +
       '</div>';
   };
 
   LP.forms = LP.forms || {};
+  function depoisDeEntrar(s) {
+    const destino = LP.afterLogin;
+    LP.afterLogin = null;
+    LP.ui.novaConta = null;
+    LP.toast('Bem-vindo(a), ' + s.nome.split(' ')[0] + '!');
+    if (s.perfil === 'gestor') LP.go(destino && destino.indexOf('#/secretaria') === 0 ? destino : '#/secretaria/solicitacoes');
+    else LP.go(destino && destino.indexOf('#/secretaria') !== 0 ? destino : '#/catalogo');
+  }
   LP.forms.login = function (form) {
     const email = form.email.value.trim().toLowerCase();
+    const senha = form.senha.value;
     const err = form.querySelector('[data-error]');
-    if (!/^[^\s@]+@academico\.ufpb\.br$/.test(email)) {
-      err.textContent = 'Use um e-mail @academico.ufpb.br.';
-      err.hidden = false;
-      form.email.focus();
+    function erro(msg, campo) { err.textContent = msg; err.hidden = false; if (campo) campo.focus(); }
+    if (!/^[^\s@]+@academico\.ufpb\.br$/.test(email)) return erro('Use um e-mail @academico.ufpb.br.', form.email);
+    if (!senha) return erro('Informe sua senha.', form.senha);
+    LP.ui.ultimoEmail = email;
+    if (!LP.store.conta(email)) {
+      LP.ui.novaConta = email;
+      LP.render();
       return;
     }
-    if (!form.senha.value) {
-      err.textContent = 'Informe sua senha.';
-      err.hidden = false;
-      return;
-    }
-    const gestor = email.indexOf('maria.souza') === 0 || email.indexOf('secretaria') === 0;
-    LP.store.entrar(gestor ? 'gestor' : 'aluno');
-    if (!gestor && LP.store.state.sessao) LP.store.state.sessao.email = email;
-    LP.go(gestor ? '#/g/solicitacoes' : (LP.afterLogin || '#/u/catalogo'));
+    const s = LP.store.autenticar(email, senha);
+    if (!s) return erro('Senha incorreta. Tente de novo.', form.senha);
+    depoisDeEntrar(s);
   };
-  LP.actions['login-as'] = function (el) {
-    LP.store.entrar(el.dataset.perfil);
-    LP.toast('Entrou como ' + LP.store.state.sessao.nome);
-    LP.go(el.dataset.perfil === 'gestor' ? '#/g/solicitacoes' : (LP.afterLogin || '#/u/catalogo'));
+  LP.forms['criar-conta'] = function (form) {
+    const f = form.elements, err = form.querySelector('[data-error]');
+    const nome = f.nome.value.trim(), mat = f.matricula.value.trim(), senha = f.senha.value;
+    function erro(msg, campo) { err.textContent = msg; err.hidden = false; if (campo) campo.focus(); }
+    if (nome.split(/\s+/).length < 2) return erro('Informe nome e sobrenome.', f.nome);
+    if (!/^\d{6,12}$/.test(mat)) return erro('A matrícula deve ter só números (6 a 12 dígitos).', f.matricula);
+    if (senha.length < 6) return erro('A senha precisa ter pelo menos 6 caracteres.', f.senha);
+    depoisDeEntrar(LP.store.criarConta({ email: LP.ui.novaConta, nome: nome, matricula: mat, senha: senha }));
   };
+  LP.actions['voltar-login'] = function () { LP.ui.novaConta = null; LP.render(); };
 
   /* ---------- 2 · Catálogo de achados (RF07, RF08, RF09) ---------- */
   function filtrar() {
@@ -152,7 +180,7 @@
     const chips = [['', 'Todos']].concat(LP.CATEGORIAS.map(function (c) { return [c.id, c.nome]; }));
     const body = header('Achados no CI', {
       sub: s ? 'Olá, ' + E(s.nome.split(' ')[0]) + '!' : 'Catálogo público',
-      right: s ? '' : '<a class="btn btn-lime btn-sm" href="#/u/login">Entrar</a>'
+      right: s ? '' : '<a class="btn btn-lime btn-sm" href="#/login">Entrar</a>'
     }) +
       '<div class="m-body">' +
       '<div class="search-row">' +
@@ -187,12 +215,12 @@
   /* ---------- 3 · Detalhe e retirada (RF10, RF11) ---------- */
   LP.views.item = function (p) {
     const it = LP.store.item(p.id);
-    if (!it) return screen(header('Item não encontrado', { back: '#/u/catalogo' }) + '<div class="m-body"><div class="empty"><p>Esse código não existe.</p></div></div>');
+    if (!it) return screen(header('Item não encontrado', { back: '#/catalogo' }) + '<div class="m-body"><div class="empty"><p>Esse código não existe.</p></div></div>');
     const c = LP.categoria(it.categoria);
     const st = LP.store.state, s = st.sessao;
     const minha = it.solicitacao && s && it.solicitacao.matricula === s.matricula;
     const dias = LP.diasRestantes(it);
-    const voltar = it.status === 'abandonado' ? '#/u/abandonados' : '#/u/catalogo';
+    const voltar = it.status === 'abandonado' ? '#/abandonados' : '#/catalogo';
 
     let aviso = '';
     if (minha) {
@@ -239,9 +267,9 @@
 
   LP.actions.solicitar = function (el) {
     if (!LP.store.state.sessao) {
-      LP.afterLogin = '#/u/item/' + el.dataset.id;
+      LP.afterLogin = '#/item/' + el.dataset.id;
       LP.toast('Entre com seu e-mail institucional para solicitar.', 'info');
-      LP.go('#/u/login');
+      LP.go('#/login');
       return;
     }
     const it = LP.store.item(el.dataset.id);
@@ -263,7 +291,7 @@
     LP.render();
   };
   LP.actions.interesse = function (el) {
-    if (!LP.store.state.sessao) { LP.afterLogin = '#/u/item/' + el.dataset.id; LP.go('#/u/login'); return; }
+    if (!LP.store.state.sessao) { LP.afterLogin = '#/item/' + el.dataset.id; LP.go('#/login'); return; }
     LP.store.interesse(el.dataset.id);
     LP.toast('Interesse registrado. A secretaria avisa se o item for liberado para você.');
     LP.render();
@@ -276,7 +304,7 @@
       return screen(header('Cadastrar item') + '<div class="m-body"><div class="empty">' +
         '<img src="assets/mascote.webp" alt="" width="110" height="110"><h3>Achou algo no CI?</h3>' +
         '<p>Entre com seu e-mail institucional para cadastrar. Assim a secretaria sabe quem trouxe o item.</p>' +
-        '<a class="btn btn-primary" href="#/u/login" data-action="login-then" data-next="#/u/cadastrar">Entrar para cadastrar</a></div></div>', { tabs: 'cadastrar' });
+        '<a class="btn btn-primary" href="#/login" data-action="login-then" data-next="#/cadastrar">Entrar para cadastrar</a></div></div>', { tabs: 'cadastrar' });
     }
     const d = LP.draft;
     const hoje = new Date(); const tz = hoje.getTimezoneOffset() * 60000;
@@ -333,7 +361,7 @@
     reader.readAsDataURL(file);
   };
   LP.actions['remover-foto'] = function (el) { capturar(el.closest('form')); LP.draft.foto = null; LP.render(); };
-  LP.actions['login-then'] = function (el, ev) { ev.preventDefault(); LP.afterLogin = el.dataset.next; LP.go('#/u/login'); };
+  LP.actions['login-then'] = function (el, ev) { ev.preventDefault(); LP.afterLogin = el.dataset.next; LP.go('#/login'); };
 
   LP.forms.cadastrar = function (form) {
     capturar(form);
@@ -356,7 +384,7 @@
       achadoEm: new Date(d.achadoEm).toISOString(), foto: d.foto, sensivel: d.sensivel
     });
     LP.draft = {};
-    LP.go('#/u/cadastrado/' + item.id);
+    LP.go('#/cadastrado/' + item.id);
   };
 
   LP.views.cadastrado = function (p) {
@@ -368,10 +396,10 @@
       '<h2>Item cadastrado!</h2><p>Obrigado por ajudar. Agora leve o item até a secretaria.</p>' +
       '<div class="code-card"><span>Código do item</span><strong>' + it.id + '</strong><small>Informe este código ao entregar</small></div>' +
       '<div class="notice notice-info">' + I('pin', 18) + '<div><strong>' + E(st.config.localRetirada) + '</strong><p class="notice-time">' + I('clock', 16) + E(st.config.horario) + '</p></div></div>' +
-      '<div class="success-actions"><a class="btn btn-primary btn-block" href="#/u/item/' + it.id + '">Ver no catálogo</a>' +
-      '<a class="btn btn-ghost btn-block" href="#/u/cadastrar">Cadastrar outro</a></div>' +
+      '<div class="success-actions"><a class="btn btn-primary btn-block" href="#/item/' + it.id + '">Ver no catálogo</a>' +
+      '<a class="btn btn-ghost btn-block" href="#/cadastrar">Cadastrar outro</a></div>' +
       '</div>';
-    return screen(header('Cadastro concluído', { back: '#/u/catalogo' }) + body, { tabs: 'cadastrar' });
+    return screen(header('Cadastro concluído', { back: '#/catalogo' }) + body, { tabs: 'cadastrar' });
   };
 
   /* ---------- 5 · Catálogo de abandonados (RF18, RF19) ---------- */
@@ -389,7 +417,7 @@
       (itens.length ? '<div class="item-list">' + itens.map(function (it) {
         const c = LP.categoria(it.categoria);
         const tem = LP.store.temInteresse(it.id);
-        return '<a class="item-card" href="#/u/item/' + it.id + '">' + LP.thumb(it, 'md') +
+        return '<a class="item-card" href="#/item/' + it.id + '">' + LP.thumb(it, 'md') +
           '<div class="item-card-body"><div class="item-card-top"><span class="cat-label" style="--ink-tile:' + c.tinta + '">' + c.nome + '</span>' + LP.statusChip(it.status) + '</div>' +
           '<h3>' + E(it.nome) + '</h3>' +
           '<p class="meta">' + I('alert', 14) + 'Venceu em ' + LP.fmt.data(LP.dataLimite(it)) + '</p>' +
@@ -407,14 +435,14 @@
     if (!s) {
       return screen(header('Perfil') + '<div class="m-body"><div class="empty"><img src="assets/mascote.webp" alt="" width="110" height="110">' +
         '<h3>Você não entrou</h3><p>Entre para acompanhar suas solicitações e os itens que cadastrou.</p>' +
-        '<a class="btn btn-primary" href="#/u/login">Entrar</a></div></div>', { tabs: 'perfil' });
+        '<a class="btn btn-primary" href="#/login">Entrar</a></div></div>', { tabs: 'perfil' });
     }
     const minhas = st.itens.filter(function (i) {
       return (i.solicitacao && i.solicitacao.matricula === s.matricula) || (i.devolucao && i.devolucao.matricula === s.matricula);
     });
     const cadastrados = st.itens.filter(function (i) { return i.cadastradoPor && i.cadastradoPor.matricula === s.matricula; });
     function linha(i, extra) {
-      return '<a class="row-link" href="#/u/item/' + i.id + '">' + LP.thumb(i, 'sm') + '<div><strong>' + E(i.nome) + '</strong><span>' + extra + '</span></div>' + LP.statusChip(i.status) + '</a>';
+      return '<a class="row-link" href="#/item/' + i.id + '">' + LP.thumb(i, 'sm') + '<div><strong>' + E(i.nome) + '</strong><span>' + extra + '</span></div>' + LP.statusChip(i.status) + '</a>';
     }
     const body = header('Perfil') +
       '<div class="m-body">' +
@@ -430,9 +458,10 @@
       (cadastrados.length ? '<div class="rows">' + cadastrados.map(function (i) { return linha(i, i.id + ' · ' + LP.fmt.relativo(i.entrada)); }).join('') + '</div>'
         : '<p class="muted pad">Nenhum item cadastrado por você.</p>') +
       '<div class="lgpd">' + I('shield', 18) + '<p><b>Seus dados (LGPD).</b> Guardamos só nome, matrícula e e-mail, para registrar quem cadastrou, pediu ou retirou um item. Apenas a secretaria vê esses dados, e eles são apagados ao fim do prazo de retenção.</p></div>' +
+      (s.perfil === 'gestor' ? '<a class="btn btn-primary btn-block" href="#/secretaria/solicitacoes">' + I('shield', 18) + 'Abrir painel da secretaria</a>' : '') +
       '<button type="button" class="btn btn-ghost btn-block" data-action="sair">' + I('logout', 18) + 'Sair</button>' +
       '</div>';
     return screen(body, { tabs: 'perfil' });
   };
-  LP.actions.sair = function () { LP.store.sair(); LP.toast('Você saiu.', 'info'); LP.go('#/u/login'); };
+  LP.actions.sair = function () { LP.store.sair(); LP.toast('Você saiu.', 'info'); LP.go('#/catalogo'); };
 })(window.LP);
