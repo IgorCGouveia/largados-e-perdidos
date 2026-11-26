@@ -8,7 +8,9 @@ O protótipo implementa as **8 telas** definidas na especificação do Marco II 
 
 ## Como rodar
 
-Não tem build nem dependências. Abra o `index.html` no navegador, ou sirva a pasta:
+**Online:** https://igorcgouveia.github.io/largados-e-perdidos/
+
+Localmente, não tem build nem dependências. Abra o `index.html` no navegador, ou sirva a pasta:
 
 ```bash
 python3 -m http.server 8000
